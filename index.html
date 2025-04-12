@@ -1,1 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo das Porcas e Parafusos 🔩</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Jogo das Porcas e Parafusos 🔩</h1>
+  <div id="menu">
+    <select id="nivelSelect">
+      <option value="facil">Fácil</option>
+      <option value="medio">Médio</option>
+      <option value="dificil">Difícil</option>
+    </select>
+    <button id="startBtn">Iniciar Novo Jogo</button>
+  </div>
+  <p id="score">Pontuação: 0</p>
+  <div id="game"></div>
+
+  <script>
+    const coresBase = ["red", "blue", "green", "orange", "purple", "yellow"];
+    let cores = [];
+    let parafusos = [];
+    let pontuacao = 0;
+    let selecionado = null;
+    let nivelAtual = 0;
+    const niveis = ["facil", "medio", "dificil"];
+
+    const gameDiv = document.getElementById("game");
+    const scoreDisplay = document.getElementById("score");
+    const nivelSelect = document.getElementById("nivelSelect");
+    const startBtn = document.getElementById("startBtn");
+
+    startBtn.addEventListener("click", iniciarJogo);
+
+    function iniciarJogo() {
+      const nivel = nivelSelect.value;
+      nivelAtual = niveis.indexOf(nivel);
+      setupNivel(nivel);
+    }
+
+    function setupNivel(nivel) {
+      switch (nivel) {
+        case "facil":
+          cores = coresBase.slice(0, 4);
+          parafusos = Array.from({ length: 6 }, () => []);
+          break;
+        case "medio":
+          cores = coresBase.slice(0, 5);
+          parafusos = Array.from({ length: 7 }, () => []);
+          break;
+        case "dificil":
+          cores = coresBase.slice(0, 6);
+          parafusos = Array.from({ length: 8 }, () => []);
+          break;
+      }
+      selecionado = null;
+      distribuirPorcas();
+      renderizar();
+      atualizarPontuacao();
+    }
+
+    function distribuirPorcas() {
+      const todasPorcas = [];
+      cores.forEach(cor => {
+        for (let i = 0; i < 4; i++) todasPorcas.push(cor);
+      });
+
+      while (todasPorcas.length > 0) {
+        const cor = todasPorcas.splice(Math.floor(Math.random() * todasPorcas.length), 1)[0];
+        let idx;
+        do {
+          idx = Math.floor(Math.random() * parafusos.length);
+        } while (parafusos[idx].length >= 4);
+        parafusos[idx].push(cor);
+      }
+    }
+
+    function renderizar() {
+      gameDiv.innerHTML = "";
+      parafusos.forEach((porcas, idx) => {
+        const div = document.createElement("div");
+        div.classList.add("parafuso");
+        if (selecionado === idx) div.style.border = "3px solid gold";
+
+        porcas.forEach((cor, i) => {
+          const p = document.createElement("div");
+          p.classList.add("porca");
+          p.style.backgroundColor = cor;
+          p.style.animationDelay = `${i * 0.05}s`;
+          div.appendChild(p);
+        });
+
+        div.addEventListener("click", () => clicarParafuso(idx));
+        gameDiv.appendChild(div);
+      });
+    }
+
+    function clicarParafuso(idx) {
+      const atual = parafusos[idx];
+
+      if (selecionado === null && atual.length > 0) {
+        selecionado = idx;
+      } else if (selecionado !== null && selecionado !== idx) {
+        const origem = parafusos[selecionado];
+        const destino = parafusos[idx];
+
+        if (destino.length >= 4) return;
+
+        const corMovida = origem[origem.length - 1];
+
+        if (destino.length === 0 || destino[destino.length - 1] === corMovida) {
+          origem.pop();
+          destino.push(corMovida);
+          renderizar();
+
+          setTimeout(() => {
+            if (destino.length === 4 && destino.every(c => c === corMovida)) {
+              pontuacao++;
+              atualizarPontuacao();
+            }
+
+            if (verificarFimDeJogo()) {
+              if (nivelAtual < niveis.length - 1) {
+                nivelAtual++;
+                alert("Nível concluído! Avançando para o próximo nível...");
+                setupNivel(niveis[nivelAtual]);
+              } else {
+                alert("Parabéns! Você completou todos os níveis!");
+              }
+            }
+            renderizar();
+          }, 300);
+        }
+        selecionado = null;
+      } else {
+        selecionado = null;
+      }
+    }
+
+    function atualizarPontuacao() {
+      scoreDisplay.textContent = `Pontuação: ${pontuacao}`;
+    }
+
+    function verificarFimDeJogo() {
+      return parafusos.every(p => p.length === 0 || (p.length === 4 && p.every(c => c === p[0])));
+    }
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+    }
+
+    #menu {
+      margin-top: 10px;
+    }
+
+    #game {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .parafuso {
+      width: 60px;
+      height: 220px;
+      border: 4px double #444;
+      background: repeating-linear-gradient(45deg, #999, #999 2px, #bbb 2px, #bbb 4px);
+      border-radius: 8px;
+      box-shadow: inset 0 0 5px #333;
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 5px;
+      cursor: pointer;
+      transition: border 0.2s ease;
+    }
+
+    .porca {
+      width: 42px;
+      height: 22px;
+      margin: 4px 0;
+      border-radius: 4px;
+      border: 2px solid #444;
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+      animation: rosquear 0.3s ease;
+    }
+
+    @keyframes rosquear {
+      0% { transform: translateY(-15px) rotate(0deg); opacity: 0; }
+      50% { transform: translateY(0) rotate(180deg); opacity: 1; }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</body>
+</html>
 
